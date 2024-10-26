@@ -1,3 +1,4 @@
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -15,6 +16,10 @@ public class BoundedBufferTest {
         //создаем ограничение для буффера
         BoundedBuffer<Integer> buffer = new BoundedBuffer<>(bufferSize);
 
+        // Создаем CountDownLatch для всех производителей и потребителей
+        CountDownLatch proizvoditely = new CountDownLatch(сount);
+        CountDownLatch potrebitely = new CountDownLatch(сount);
+
         //создаём потоки
         ExecutorService executor = Executors.newFixedThreadPool(сount + сount);
 
@@ -28,8 +33,12 @@ public class BoundedBufferTest {
                         buffer.put(item);
                         System.out.println("Производитель " + producerId + " отдал: " + item);
                     }
-                } catch (InterruptedException e) {
+                } 
+                catch (InterruptedException e) {
                     Thread.currentThread().interrupt();
+                }
+                finally{
+                    proizvoditely.countDown();
                 }
             });
         }
@@ -43,11 +52,22 @@ public class BoundedBufferTest {
                         Integer item = buffer.take();
                         System.out.println("Потребитель " + consumerId + " взял: " + item);
                     }
-                } catch (InterruptedException e) {
+                } 
+                catch (InterruptedException e) {
                     Thread.currentThread().interrupt();
+                }
+                finally{
+                    potrebitely.countDown();
                 }
             });
         }
+
+        //Ожидание завершения всех произваодителй
+        proizvoditely.await();
+        System.out.println("Все производители завершили свою работу.\n");
+
+        potrebitely.await();
+        System.out.println("Все потребители завершили свою работу.\n");
 
         //заверщение поток
         executor.shutdown();
